@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password123
+      MYSQL_DATABASE: springboot_mysql_demo
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "--silent"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: springboot-app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://10.132.72.38:3306/springboot_mysql_demo
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: password123
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+    volumes:
+      - app-data:/app/data  # Mount a volume to persist files
+      - ./src/main/resources:/app/resources
+      - ./src/main/resources/templates:/app/resources/templates
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  app-data:  # Define the volume for the Spring Boot app
